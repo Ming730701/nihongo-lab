@@ -195,6 +195,7 @@ details.adv summary{cursor:pointer;min-height:40px;display:flex;align-items:cent
             <button id="bMine" disabled>▶ 聽我的</button>
             <button id="bCmp" disabled>⇄ 原音→我的</button>
           </div>
+          <div class="row"><button id="bFix">原音破音？按這裡修復</button></div>
           <div class="msg" id="recMsg"></div>
           <h3 style="margin-top:14px">這個音檔練得如何？</h3>
           <div class="row rate">
@@ -460,17 +461,28 @@ $('#bDel').onclick=e=>{if(Date.now()-delArm>3000){delArm=Date.now();e.target.tex
   stopAll();tracks.delete(curId);metas.delete(curId);del('files',curId);del('meta',curId);curId=null;const f=sorted()[0];if(f)select(f.id);else renderLib()};
 
 /* ---------- 錄音 ---------- */
+// iOS Safari：開麥克風會把音訊切到「錄放模式」，錄完要切回「播放模式」，否則原音會破音、變小聲
+function setSession(t){try{if(navigator.audioSession)navigator.audioSession.type=t}catch(_){}}
+function restoreAudio(){
+  setSession('playback');
+  // 重新載入播放器，讓它用回正常的音訊路徑
+  const t=audio.currentTime,r=audio.playbackRate,src=audio.src;
+  if(src){audio.src='';audio.src=src;audio.playbackRate=r;audio.preservesPitch=true;
+    audio.addEventListener('loadedmetadata',()=>{try{audio.currentTime=t}catch(_){}},{once:true});audio.load()}
+}
 $('#bRec').onclick=async()=>{
   if(recorder&&recorder.state==='recording'){recorder.stop();return}
   try{
-    const st=await navigator.mediaDevices.getUserMedia({audio:true});
+    setSession('play-and-record');
+    const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
     const chunks=[];recorder=new MediaRecorder(st);const key=curId+'|'+segI;
     recorder.ondataavailable=e=>chunks.push(e.data);
-    recorder.onstop=()=>{st.getTracks().forEach(t=>t.stop());const old=recs.get(key);if(old)URL.revokeObjectURL(old);
+    recorder.onstop=()=>{st.getTracks().forEach(t=>t.stop());restoreAudio();const old=recs.get(key);if(old)URL.revokeObjectURL(old);
       recs.set(key,URL.createObjectURL(new Blob(chunks,{type:recorder.mimeType})));$('#bRec').textContent='● 重錄';$('#bRec').classList.remove('on');$('#recMsg').textContent='';renderSeg()};
     stopAll();recorder.start();$('#bRec').textContent='■ 停止錄音';$('#bRec').classList.add('on');$('#recMsg').textContent='錄音中…說完按停止';
   }catch(e){$('#recMsg').textContent='無法使用麥克風。claude.ai 網頁版本身不支援錄音，請改用你的 GitHub 網址版或離線版；若已在那裡，請到 Safari 的「網站設定」允許麥克風後重試。'}
 };
+$('#bFix').onclick=()=>{stopAll();setSession('playback');location.reload()};
 $('#bMine').onclick=()=>{const r=recs.get(curId+'|'+segI);if(!r)return;stopAll();mine.src=r;mine.play().catch(()=>{})};
 $('#bCmp').onclick=()=>{const r=recs.get(curId+'|'+segI);if(!r)return;const keep=mode;mode='loop';playSeg(segI);mode=keep;
   afterSeg=()=>{mine.src=r;setTimeout(()=>mine.play().catch(()=>{}),300)}};

@@ -108,7 +108,8 @@ details.adv summary{cursor:pointer;min-height:40px;display:flex;align-items:cent
   .pick{display:flex;align-items:center;gap:10px;width:100%;margin-bottom:10px;min-height:52px;font:700 17px 'Zen Kaku Gothic New',sans-serif;background:var(--panel);text-align:left}
   .pick #pickName{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pick .pk{color:var(--mute)}
   .dock{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:20;gap:8px;justify-content:space-around;align-items:center;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:var(--deck);box-shadow:0 -4px 20px rgba(0,0,0,.2)}
-  .dock button{flex:1;min-height:52px;font-size:22px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#eef1f6;border-radius:14px;padding:0}
+  .dock{gap:6px!important;padding-left:8px!important;padding-right:8px!important}
+  .dock button{flex:1;min-height:52px;font-size:20px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#eef1f6;border-radius:14px;padding:0}
   .dock .big{flex:1.4;background:var(--red);border-color:var(--red);font-size:24px}
   .dock button.on{background:#f0d9a8;color:#1d3557}
   #bPrev,#bPlay,#bNext{display:none}
@@ -267,6 +268,7 @@ details.adv summary{cursor:pointer;min-height:40px;display:flex;align-items:cent
   <button id="dPlay" class="big" aria-label="播放">▶</button>
   <button id="dNext" aria-label="下一句">⏭</button>
   <button id="dRec" aria-label="錄音">●</button>
+  <button id="dMine" aria-label="聽我的錄音" disabled>我的</button>
   <button id="dCmp" aria-label="原音→我的" disabled>⇄</button>
 </nav>
 <script>
@@ -470,7 +472,7 @@ requestAnimationFrame(tick);
 audio.onended=()=>{stopAt=null;segI=0;try{audio.currentTime=startPos()}catch(_){}renderSeg();updPlay();draw();$('#sTime').textContent=fmt(startPos())+' / '+fmt(audio.duration)};
 audio.onloadedmetadata=()=>{if(audio.currentTime<startPos())audio.currentTime=startPos();draw();$('#sTime').textContent='0:00 / '+fmt(audio.duration)};
 function updPlay(){const busy=!audio.paused||waitT;$('#bPlay').textContent=busy?'❚❚ 暫停':'▶ 播放';$('#dPlay').textContent=busy?'❚❚':'▶';$('#dPlay').setAttribute('aria-label',busy?'暫停':'播放')}
-function syncDock(){const rec=recorder&&recorder.state==='recording';$('#dRec').classList.toggle('on',!!rec);$('#dRec').textContent=rec?'■':'●';$('#dCmp').disabled=$('#bCmp').disabled}
+function syncDock(){const rec=recorder&&recorder.state==='recording';$('#dRec').classList.toggle('on',!!rec);$('#dRec').textContent=rec?'■':'●';$('#dCmp').disabled=$('#bCmp').disabled;$('#dMine').disabled=$('#bMine').disabled}
 const lib=document.querySelector('.lib');
 function openSheet(){lib.open=true;lib.classList.add('show');$('#scrim').hidden=false;const c=lib.querySelector('.trk.cur');if(c)c.scrollIntoView({block:'center'})}
 function closeSheet(){lib.classList.remove('show');$('#scrim').hidden=true}
@@ -481,7 +483,7 @@ $('#toast').onclick=()=>$('#toast').hidden=true;
 $('#bImp').onclick=()=>{impOpen=true;renderLib()};
 $('#bPick').onclick=openSheet;$('#scrim').onclick=closeSheet;$('#bClose').onclick=closeSheet;
 $('#dPrev').onclick=()=>jump(-1);$('#dNext').onclick=()=>jump(1);$('#dPlay').onclick=()=>toggle();
-$('#dRec').onclick=()=>$('#bRec').click();$('#dCmp').onclick=()=>$('#bCmp').click();
+$('#dRec').onclick=()=>$('#bRec').click();$('#dMine').onclick=()=>$('#bMine').click();$('#dCmp').onclick=()=>$('#bCmp').click();
 function toggle(){
   if(!audio.paused||waitT){stopAll();return}
   if(mode==='cont'){if(audio.ended||audio.currentTime<startPos())audio.currentTime=startPos();audio.play().catch(()=>{});updPlay()}
@@ -549,12 +551,13 @@ $('#bRec').onclick=async()=>{
   try{
     setSession('play-and-record');
     let st;
-    try{st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}})}
+    const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    try{st=await navigator.mediaDevices.getUserMedia(isIOS?{audio:true}:{audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}})}
     catch(e1){if(e1&&e1.name==='NotAllowedError')throw e1;st=await navigator.mediaDevices.getUserMedia({audio:true})}
-    const chunks=[];recorder=new MediaRecorder(st);const key=curId+'|'+segI;
+    const chunks=[];recorder=new MediaRecorder(st);const key=curId+'|'+segI;const t0=performance.now();
     recorder.ondataavailable=e=>chunks.push(e.data);
     recorder.onstop=()=>{st.getTracks().forEach(t=>t.stop());restoreAudio();const old=recs.get(key);if(old)URL.revokeObjectURL(old);
-      recs.set(key,URL.createObjectURL(new Blob(chunks,{type:recorder.mimeType})));$('#bRec').textContent='● 重錄';$('#bRec').classList.remove('on');$('#recMsg').textContent='錄好了，按「原音→我的」比對';renderSeg();syncDock()};
+      const blob=new Blob(chunks,{type:recorder.mimeType||'audio/mp4'});recs.set(key,URL.createObjectURL(blob));$('#bRec').textContent='● 重錄';$('#bRec').classList.remove('on');const secs=((performance.now()-t0)/1000).toFixed(1),kb=(blob.size/1024).toFixed(0);$('#recMsg').textContent=blob.size<2000?`錄音好像是空的（${secs} 秒、${kb} KB）。請把這行告訴 Claude。`:`錄好了（${secs} 秒、${kb} KB），按 ⇄ 比對或「聽我的」`;renderSeg();syncDock()};
     stopAll();recorder.start();$('#bRec').textContent='■ 停止錄音';$('#bRec').classList.add('on');$('#recMsg').textContent='錄音中…說完按停止';syncDock();
   }catch(e){setSession('playback');const n=e&&e.name||'Error';
     $('#recMsg').textContent=n==='NotAllowedError'?'麥克風被拒絕（NotAllowedError）：點 Safari 網址列左邊的「大小」圖示 →「網站設定」→ 麥克風改成「允許」，再重新整理。也請確認 設定 → Safari → 麥克風 不是「拒絕」。'
@@ -563,9 +566,13 @@ $('#bRec').onclick=async()=>{
     syncDock()}
 };
 $('#bFix').onclick=()=>{stopAll();setSession('playback');location.reload()};
-$('#bMine').onclick=()=>{const r=recs.get(curId+'|'+segI);if(!r)return;stopAll();mine.src=r;mine.play().catch(()=>{})};
-$('#bCmp').onclick=()=>{const r=recs.get(curId+'|'+segI);if(!r)return;const keep=mode;mode='loop';playSeg(segI);mode=keep;
-  afterSeg=()=>{mine.src=r;setTimeout(()=>mine.play().catch(()=>{}),300)}};
+// iPhone 只允許「手指點按當下」開始播放；先在點按時用靜音播一下解鎖，之後才能自動接著播
+function unlock(el){try{el.muted=true;const p=el.play();if(p&&p.then)p.then(()=>{el.pause();el.currentTime=0;el.muted=false}).catch(()=>{el.muted=false});else el.muted=false}catch(_){el.muted=false}}
+function playMine(){mine.muted=false;mine.volume=1;try{mine.currentTime=0}catch(_){}const p=mine.play();if(p&&p.catch)p.catch(e=>{$('#recMsg').textContent=`播放錄音失敗（${e&&e.name||'Error'}），請改按「聽我的」`})}
+$('#bMine').onclick=()=>{const r=recs.get(curId+'|'+segI);if(!r)return;stopAll();setSession('playback');if(mine.src!==r)mine.src=r;playMine()};
+$('#bCmp').onclick=()=>{const r=recs.get(curId+'|'+segI);if(!r)return;setSession('playback');if(mine.src!==r)mine.src=r;unlock(mine);
+  const keep=mode;mode='loop';playSeg(segI);mode=keep;
+  afterSeg=()=>{setTimeout(playMine,300)}};
 
 /* ---------- 間隔複習 ---------- */
 function renderSrs(){const m=metas.get(curId);if(!m)return;const s=m.srs;

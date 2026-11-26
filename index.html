@@ -50,6 +50,7 @@ label{font-size:14px;color:var(--mute)}
 .grp[open]{padding-bottom:8px}
 .pick,.dock,.sheethead,.scrim{display:none}
 .toast{display:none}
+.btnlink{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--line);color:var(--indigo);text-decoration:none}
 .impbtn{width:100%;margin:10px 0;color:var(--indigo);font-weight:700}
 .grp h3{font-size:14px;color:var(--mute);margin:14px 0 6px;font-weight:700}
 .trk{display:flex;width:100%;text-align:left;align-items:center;gap:8px;border:0;border-radius:8px;padding:6px 8px;min-height:40px;background:none}
@@ -124,7 +125,7 @@ details.adv summary{cursor:pointer;min-height:40px;display:flex;align-items:cent
 <body>
 <header>
   <div class="stamp" aria-hidden="true">聴</div>
-  <h1>日語聽說練習室</h1>
+  <h1>日語聽說練習室 <small style="font:500 12px ui-monospace,monospace;opacity:.6">v1126-5</small></h1>
   <p>搭配《日本語 GOGOGO 1》練習音檔：自動切句、跟讀、錄音對照、聽寫筆記、間隔複習</p>
 </header>
 
@@ -229,6 +230,8 @@ details.adv summary{cursor:pointer;min-height:40px;display:flex;align-items:cent
           <div class="row">
             <button id="bRec">● 錄我的發音</button>
             <button id="bMine" disabled>▶ 聽我的</button>
+            <button id="bMineB" disabled>播放方式 B</button>
+            <a id="aSave" class="btnlink" hidden>存下錄音檔</a>
             <button id="bCmp" disabled>⇄ 原音→我的</button>
           </div>
           <div class="row"><button id="bFix">原音破音？按這裡修復</button></div>
@@ -361,8 +364,9 @@ function renderLib(){
 /* ---------- 分析與切句 ---------- */
 async function decode(blob){
   const ab=await blob.arrayBuffer();
-  ac=ac||new (window.AudioContext||window.webkitAudioContext)();
-  return await new Promise((res,rej)=>{const p=ac.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej)});
+  const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+  const c=OAC?new OAC(1,22050,22050):(ac=ac||new (window.AudioContext||window.webkitAudioContext)());
+  return await new Promise((res,rej)=>{const p=c.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej)});
 }
 function analyze(buf){
   const sr=buf.sampleRate,hop=Math.round(sr*0.02),d0=buf.getChannelData(0),d1=buf.numberOfChannels>1?buf.getChannelData(1):null;
@@ -509,7 +513,7 @@ function renderSeg(){
   const S=segs(),m=metas.get(curId);if(!m)return;
   $('#sIdx').textContent=S.length?`第 ${segI+1} / ${S.length} 句`:'—';
   const n=m.notes[segI]||{};$('#nHeard').value=n.h||'';$('#nAns').value=n.a||'';
-  const r=recs.get(curId+'|'+segI);$('#bMine').disabled=$('#bCmp').disabled=!r;if(typeof syncDock==='function')syncDock();
+  const r=recs.get(curId+'|'+segI);$('#bMine').disabled=$('#bCmp').disabled=$('#bMineB').disabled=!r;if(!r)$('#aSave').hidden=true;if(typeof syncDock==='function')syncDock();
   if(typeof renderTx==='function')renderTx();
 }
 function setNote(k,v){const m=metas.get(curId);if(!m)return;while(m.notes.length<=segI)m.notes.push(null);m.notes[segI]=Object.assign({},m.notes[segI],{[k]:v});saveMeta()}
@@ -557,7 +561,13 @@ $('#bRec').onclick=async()=>{
     const chunks=[];recorder=new MediaRecorder(st);const key=curId+'|'+segI;const t0=performance.now();
     recorder.ondataavailable=e=>chunks.push(e.data);
     recorder.onstop=()=>{st.getTracks().forEach(t=>t.stop());restoreAudio();const old=recs.get(key);if(old)URL.revokeObjectURL(old);
-      const blob=new Blob(chunks,{type:recorder.mimeType||'audio/mp4'});recs.set(key,URL.createObjectURL(blob));$('#bRec').textContent='● 重錄';$('#bRec').classList.remove('on');const secs=((performance.now()-t0)/1000).toFixed(1),kb=(blob.size/1024).toFixed(0);$('#recMsg').textContent=blob.size<2000?`錄音好像是空的（${secs} 秒、${kb} KB）。請把這行告訴 Claude。`:`錄好了（${secs} 秒、${kb} KB），按 ⇄ 比對或「聽我的」`;renderSeg();syncDock()};
+      const blob=new Blob(chunks,{type:recorder.mimeType||'audio/mp4'});recs.set(key,URL.createObjectURL(blob));$('#bRec').textContent='● 重錄';$('#bRec').classList.remove('on');const secs=((performance.now()-t0)/1000).toFixed(1),kb=(blob.size/1024).toFixed(0);$('#recMsg').textContent=`錄好了（${secs} 秒、${kb} KB），檢查音量中…`;
+      const dl=$('#aSave');dl.href=recs.get(key);dl.download=`我的錄音_${segI+1}.${/mp4|m4a|aac/.test(blob.type)?'m4a':'webm'}`;dl.hidden=false;
+      decode(blob).then(b=>{let pk=0;const d=b.getChannelData(0);for(let i=0;i<d.length;i++){const v=Math.abs(d[i]);if(v>pk)pk=v}
+        const db=pk>0?Math.round(20*Math.log10(pk)):-99;
+        $('#recMsg').textContent=db<=-50?`錄到的是靜音（${secs} 秒、峰值 ${db} dB）：麥克風沒收到聲音。請把這行告訴 Claude。`
+          :`錄好了（${secs} 秒、峰值 ${db} dB，有錄到聲音）。按「我的」聽；沒聲音就改按「播放方式 B」`})
+       .catch(e=>{$('#recMsg').textContent=`錄好了（${secs} 秒、${kb} KB），但無法分析音量（${e&&e.name||'Error'}）。`});renderSeg();syncDock()};
     stopAll();recorder.start();$('#bRec').textContent='■ 停止錄音';$('#bRec').classList.add('on');$('#recMsg').textContent='錄音中…說完按停止';syncDock();
   }catch(e){setSession('playback');const n=e&&e.name||'Error';
     $('#recMsg').textContent=n==='NotAllowedError'?'麥克風被拒絕（NotAllowedError）：點 Safari 網址列左邊的「大小」圖示 →「網站設定」→ 麥克風改成「允許」，再重新整理。也請確認 設定 → Safari → 麥克風 不是「拒絕」。'
@@ -569,6 +579,13 @@ $('#bFix').onclick=()=>{stopAll();setSession('playback');location.reload()};
 // iPhone 只允許「手指點按當下」開始播放；先在點按時用靜音播一下解鎖，之後才能自動接著播
 function unlock(el){try{el.muted=true;const p=el.play();if(p&&p.then)p.then(()=>{el.pause();el.currentTime=0;el.muted=false}).catch(()=>{el.muted=false});else el.muted=false}catch(_){el.muted=false}}
 function playMine(){mine.muted=false;mine.volume=1;try{mine.currentTime=0}catch(_){}const p=mine.play();if(p&&p.catch)p.catch(e=>{$('#recMsg').textContent=`播放錄音失敗（${e&&e.name||'Error'}），請改按「聽我的」`})}
+let wac=null;
+$('#bMineB').onclick=async()=>{const r=recs.get(curId+'|'+segI);if(!r)return;stopAll();setSession('playback');
+  try{wac=wac||new (window.AudioContext||window.webkitAudioContext)();await wac.resume();
+    const ab=await (await fetch(r)).arrayBuffer();const buf=await new Promise((res,rej)=>{const p=wac.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej)});
+    const src=wac.createBufferSource();src.buffer=buf;src.connect(wac.destination);src.start();
+    $('#recMsg').textContent='播放方式 B 播放中（這個方式在 iPhone 靜音開關打開時會沒聲音）'}
+  catch(e){$('#recMsg').textContent=`播放方式 B 失敗（${e&&e.name||'Error'}）`}};
 $('#bMine').onclick=()=>{const r=recs.get(curId+'|'+segI);if(!r)return;stopAll();setSession('playback');if(mine.src!==r)mine.src=r;playMine()};
 $('#bCmp').onclick=()=>{const r=recs.get(curId+'|'+segI);if(!r)return;setSession('playback');if(mine.src!==r)mine.src=r;unlock(mine);
   const keep=mode;mode='loop';playSeg(segI);mode=keep;

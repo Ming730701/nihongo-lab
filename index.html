@@ -158,8 +158,10 @@ details.adv summary{cursor:pointer;min-height:40px;display:flex;align-items:cent
         </div>
         <div class="ctl">
           <div class="seg-mode" role="group" aria-label="播放模式">
-            <button data-m="cont">連續播放</button><button data-m="loop">單句循環</button><button data-m="shadow">跟讀</button>
+            <button data-m="cont">整段播放</button><button data-m="loop">單句循環</button><button data-m="shadow">跟讀</button>
           </div>
+          <button id="bWhole">⏵ 從頭整段播放</button>
+          <label style="color:inherit"><input type="checkbox" id="cSkip"> 跳過開場音樂</label>
           <span id="shadowOpts" class="ctl" hidden>
             <label style="color:inherit">複誦時間 <input type="range" id="gap" min="1" max="2.5" step="0.1" value="1.5"> <span id="gapV">1.5×</span></label>
             <label style="color:inherit">每句 <select id="reps"><option>1</option><option selected>2</option><option>3</option></select> 次</label>
@@ -253,6 +255,11 @@ const pad=n=>String(n).padStart(2,'0');
 const GG_T=["五十音・發音", "挨拶", "大切な表現", "単語表", "練習1", "練習2", "会話1", "練習3", "練習4", "練習5", "練習6", "練習7 数字1", "練習8", "会話2", "大切な表現", "単語表", "練習1", "会話1", "練習2", "練習3", "会話2", "練習4", "会話3", "大切な表現", "単語表", "練習1 時間の言い方", "練習2", "会話1", "練習3", "会話2", "練習4", "会話3", "大切な表現", "単語表", "練習1 数字2", "練習2 値段の言い方", "練習3", "練習4 数詞1", "練習5", "練習6", "会話1", "練習7 数詞2", "練習8", "会話2", "大切な表現", "単語表", "練習1 季節・日・曜日", "練習2", "練習3", "会話1", "練習4 位置の言い方", "練習5", "会話2", "大切な表現", "単語表", "練習1 時を表す言葉", "練習2", "会話1", "練習3", "練習4", "会話2", "練習5", "練習6", "練習7", "会話3", "大切な表現", "単語表", "練習1 動詞", "練習2", "練習3", "会話1", "練習4", "会話2", "練習5", "会話3", "練習6", "会話4", "練習7 期間の言い方", "練習8", "会話5", "大切な表現", "単語表", "練習1 形容詞", "練習2", "会話1", "練習3", "会話2", "練習4", "会話3", "練習5", "会話4", "大切な表現", "単語表", "練習1 形容詞2", "練習2", "練習3", "会話1", "練習4", "練習5", "会話2", "「いい」の活用", "大切な表現", "単語表", "練習1", "練習2", "会話1", "練習3", "練習4", "練習5", "練習6", "会話2", "教室用語"];
 const GG_L=[[1, 2, "入門 發音・挨拶"], [3, 14, "第1課"], [15, 23, "第2課"], [24, 32, "第3課"], [33, 44, "第4課"], [45, 53, "第5課"], [54, 65, "第6課"], [66, 80, "第7課"], [81, 91, "第8課"], [92, 101, "第9課"], [102, 111, "第10課"], [112, 112, "附錄 教室用語"]];
 const ggNo=name=>{const m=String(name).match(/初級-(\d+)/);const n=m?+m[1]:NaN;return n>=1&&n<=112?n:null};
+// 每軌開場音樂結束的秒數（由片頭比對＋語音辨識推算）
+const GG_TRIM=[1.18, 6.62, 5.43, 4.1, 4.06, 4.08, 4.07, 4.12, 4.38, 4.07, 4.19, 4.22, 4.28, 4.09, 5.69, 4.28, 4.08, 4.07, 4.09, 4.57, 4.61, 4.22, 4.31, 5.98, 4.07, 4.08, 4.08, 4.02, 4.15, 4.31, 4.07, 4.06, 5.21, 4.08, 4.15, 4.07, 4.05, 4.08, 4.09, 4.07, 4.06, 4.06, 4.05, 4.07, 5.21, 4.06, 4.08, 4.07, 4.07, 4.05, 3.88, 4.11, 4.09, 5.24, 4.09, 4.07, 4.1, 4.07, 3.69, 4.09, 4.07, 4.12, 4.09, 4.07, 4.11, 5.22, 4.09, 4.06, 4.08, 4.08, 4.09, 4.11, 4.09, 4.09, 4.07, 4.08, 4.09, 4.11, 4.1, 4.09, 5.22, 4.1, 4.07, 4.07, 4.1, 4.09, 4.09, 4.07, 4.08, 4.09, 4.08, 5.21, 4.09, 4.08, 4.08, 4.06, 4.1, 4.07, 4.08, 4.08, 4.09, 5.23, 4.09, 4.1, 4.12, 4.09, 4.08, 4.09, 4.09, 4.07, 4.08, 5.4];
+const trimOf=m=>{const n=m&&ggNo(m.name);return n?GG_TRIM[n-1]:0};
+let skipIntro=true;try{skipIntro=localStorage.getItem('gg-skip')!=='0'}catch(_){}
+const startPos=()=>skipIntro?trimOf(metas.get(curId)):0;
 const ggLesson=n=>{const r=GG_L.find(r=>n>=r[0]&&n<=r[1]);return r?r[2]:null};
 
 function trackNo(name){const nums=name.replace(AUD,'').match(/\d+/g);if(!nums)return null;
@@ -314,7 +321,7 @@ function analyze(buf){
   for(let f=0;f<F;f++){let s=0;const o=f*hop;for(let i=0;i<hop;i+=2){let v=d0[o+i];if(d1)v=(v+d1[o+i])/2;s+=v*v}const r=Math.sqrt(s/(hop/2));rms[f]=r;if(r>max)max=r}
   return {rms,max,dur:buf.duration};
 }
-function segment(a,thrDb,silMs){
+function segment(a,thrDb,silMs,trim){trim=trim||0;const F0=Math.ceil(trim/0.02);
   const N=a.rms.length,minSil=Math.round(silMs/20),out=[];
   const db=new Float32Array(N);for(let f=0;f<N;f++)db[f]=Math.max(-90,20*Math.log10(a.rms[f]/a.max+1e-9));
   const act=[...db].filter(v=>v>-89).sort((x,y)=>x-y),floor=act.length?act[Math.floor(act.length*0.1)]:-90;
@@ -326,12 +333,12 @@ function segment(a,thrDb,silMs){
   else loud=f=>db[f]>thrDb;
   let st=-1,last=-1,run=0;
   for(let f=0;f<N;f++){
-    if(loud(f)){if(st<0)st=f;last=f;run=0}
+    if(f>=F0&&loud(f)){if(st<0)st=f;last=f;run=0}
     else if(st>=0&&++run>=minSil){out.push([st,last+1]);st=-1;run=0}
   }
   if(st>=0)out.push([st,last+1]);
   const segs=[];
-  for(const [s,e] of out){const S=Math.max(0,s*0.02-0.12),E=Math.min(a.dur,e*0.02+0.18);if(E-S<0.35)continue;
+  for(const [s,e] of out){const S=Math.max(trim,s*0.02-0.12),E=Math.min(a.dur,e*0.02+0.18);if(E-S<0.35)continue;
     if(segs.length&&S<=segs[segs.length-1].e)segs[segs.length-1].e=E;else segs.push({s:S,e:E})}
   return segs.length?segs:[{s:0,e:a.dur}];
 }
@@ -348,7 +355,9 @@ async function select(id){
   try{
     const buf=await decode(t.blob);if(curId!==id)return;
     an=analyze(buf);
-    if(!m.segs){m.segs=segment(an,+$('#thr').value,+$('#sil').value);put('meta',m)}
+    if(!m.segs){m.segs=segment(an,+$('#thr').value,+$('#sil').value,trimOf(m));m.introV=1;put('meta',m)}
+    else if(m.introV!==1){const tr=trimOf(m);if(tr>0){let k=0;while(k<m.segs.length&&m.segs[k].e<=tr+0.25)k++;
+      if(k&&k<m.segs.length){m.segs.splice(0,k);m.notes.splice(0,k)}if(m.segs[0]&&m.segs[0].s<tr)m.segs[0].s=tr}m.introV=1;put('meta',m)}
     $('#sInfo').textContent=`共 ${m.segs.length} 句・${fmt(an.dur)}${an.noisy?'・有背景音，已自動調整切句':''}`;
   }catch(e){$('#sInfo').textContent='無法分析這個格式，仍可一般播放';if(!m.segs)m.segs=[]}
   buildTx();renderSeg();draw();
@@ -367,6 +376,7 @@ function draw(){
     for(let k=0;k<n;k++){let v=0;const a=Math.floor(k*step),b=Math.floor((k+1)*step);for(let f=a;f<b;f++)if(an.rms[f]>v)v=an.rms[f];
       const h=Math.max(2,Math.sqrt(v/an.max)*(H-20));const t=(k+.5)/n*dur,s=m.segs&&m.segs[segI];
       g.fillStyle=s&&t>=s.s&&t<=s.e?'#ffd9cc':'rgba(238,241,246,.75)';g.fillRect(k*3,(H-h)/2,2,h)}}
+  const tr=trimOf(m);if(tr>0&&skipIntro){g.fillStyle='rgba(0,0,0,.45)';g.fillRect(0,0,X(tr),H);if(X(tr)>34){g.fillStyle='rgba(238,241,246,.8)';g.font='12px sans-serif';g.fillText('片頭',4,14)}}
   g.fillStyle='#f0d9a8';g.fillRect(X(audio.currentTime||0)-1,0,2,H);
 }
 const ro=new ResizeObserver(draw);ro.observe(fig);
@@ -410,12 +420,12 @@ function tick(){
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
-audio.onended=()=>{stopAt=null;updPlay();draw()};
-audio.onloadedmetadata=()=>{draw();$('#sTime').textContent='0:00 / '+fmt(audio.duration)};
+audio.onended=()=>{stopAt=null;segI=0;try{audio.currentTime=startPos()}catch(_){}renderSeg();updPlay();draw();$('#sTime').textContent=fmt(startPos())+' / '+fmt(audio.duration)};
+audio.onloadedmetadata=()=>{if(audio.currentTime<startPos())audio.currentTime=startPos();draw();$('#sTime').textContent='0:00 / '+fmt(audio.duration)};
 function updPlay(){const busy=!audio.paused||waitT;$('#bPlay').textContent=busy?'❚❚ 暫停':'▶ 播放'}
 function toggle(){
   if(!audio.paused||waitT){stopAll();return}
-  if(mode==='cont'){const s=segs()[segI];if(s&&(audio.currentTime<s.s-0.05||audio.currentTime>s.e))audio.currentTime=s.s;audio.play().catch(()=>{});updPlay()}
+  if(mode==='cont'){if(audio.ended||audio.currentTime<startPos())audio.currentTime=startPos();audio.play().catch(()=>{});updPlay()}
   else playSeg(segI);
 }
 $('#bPlay').onclick=toggle;
@@ -428,6 +438,9 @@ $('#rate').onchange=e=>{audio.playbackRate=+e.target.value;try{localStorage.setI
 function setMode(m){mode=m;$$('.seg-mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));$('#shadowOpts').hidden=m!=='shadow';
   if(!audio.paused){const s=segs()[segI];stopAt=m==='cont'?null:(s?s.e:null)}clearWait();updPlay();try{localStorage.setItem('gg-mode',m)}catch(_){}}
 $$('.seg-mode button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+$('#bWhole').onclick=()=>{setMode('cont');stopAll();segI=0;audio.currentTime=startPos();audio.play().catch(()=>{});renderSeg();updPlay();draw()};
+$('#cSkip').checked=skipIntro;
+$('#cSkip').onchange=e=>{skipIntro=e.target.checked;try{localStorage.setItem('gg-skip',skipIntro?'1':'0')}catch(_){}draw()};
 $('#gap').oninput=e=>$('#gapV').textContent=(+e.target.value).toFixed(1)+'×';
 
 /* ---------- 句子與筆記 ---------- */
@@ -455,7 +468,7 @@ $('#bSplit').onclick=()=>{const m=metas.get(curId),S=m.segs,s=S&&S[segI],t=audio
   put('meta',m);buildTx();renderSeg();draw();$('#sInfo').textContent=`共 ${S.length} 句`};
 $('#thr').oninput=e=>$('#thrV').textContent=e.target.value+' dB';
 $('#sil').oninput=e=>$('#silV').textContent=e.target.value+' ms';
-$('#bResplit').onclick=()=>{if(!an)return;const m=metas.get(curId);stopAll();m.segs=segment(an,+$('#thr').value,+$('#sil').value);segI=0;put('meta',m);buildTx();renderSeg();draw();$('#sInfo').textContent=`共 ${m.segs.length} 句・${fmt(an.dur)}${an.noisy?'・有背景音，已自動調整切句':''}`};
+$('#bResplit').onclick=()=>{if(!an)return;const m=metas.get(curId);stopAll();m.segs=segment(an,+$('#thr').value,+$('#sil').value,trimOf(m));m.introV=1;segI=0;put('meta',m);buildTx();renderSeg();draw();$('#sInfo').textContent=`共 ${m.segs.length} 句・${fmt(an.dur)}${an.noisy?'・有背景音，已自動調整切句':''}`};
 let delArm=0;
 $('#bDel').onclick=e=>{if(Date.now()-delArm>3000){delArm=Date.now();e.target.textContent='再按一次確認移除';setTimeout(()=>e.target.textContent='移除這個音檔',3000);return}
   stopAll();tracks.delete(curId);metas.delete(curId);del('files',curId);del('meta',curId);curId=null;const f=sorted()[0];if(f)select(f.id);else renderLib()};

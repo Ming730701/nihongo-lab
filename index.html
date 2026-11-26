@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>日語聽說練習室</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* VOICE: 專注、安靜的語言教室，像一台認真的錄放音機，不花俏
+   IDEA: 語言教室的「卡帶錄放機＋課本筆記」：波形就是磁帶，一句一格
+   PICTURE: 大波形條，句子切成色塊，播放中的句子以朱紅標示
+   COLOUR and TYPE: 藍染靛 #1d3557 為底色帶、和紙白 #f7f4ec、朱紅印章 #d1432b；Zen Kaku Gothic New＋Noto Sans TC
+   LAYOUT: 左側音檔庫、右側播放台＋句子筆記；600px 以下堆疊 */
+:root{color-scheme:light dark;
+--bg:light-dark(#f7f4ec,#10161f);--panel:light-dark(#ffffff,#18212d);--ink:light-dark(#18202b,#e9e6dd);
+--mute:light-dark(#5d6672,#9aa3ae);--line:light-dark(#e2ddd0,#2a3542);--indigo:light-dark(#1d3557,#9fb8dc);
+--deck:light-dark(#1d3557,#0b1119);--deckink:#eef1f6;--seg:light-dark(#3f5f8c,#4b6a96);--seg2:light-dark(#5b7cab,#6585b3);
+--red:#d1432b;--ok:light-dark(#2f7d4f,#6cc08d);--warn:light-dark(#a8661a,#e3a755)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Noto Sans TC","Zen Kaku Gothic New",system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:"Zen Kaku Gothic New","Noto Sans TC",sans-serif;margin:0;line-height:1.1;text-wrap:balance}
+header{background:var(--deck);color:var(--deckink);padding:18px max(4vw,16px);display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+header h1{font-size:clamp(24px,3.4vw,34px);font-weight:900}
+.stamp{width:44px;height:44px;border-radius:8px;background:var(--red);color:#fff;display:grid;place-items:center;font:900 22px "Zen Kaku Gothic New";transform:rotate(-4deg);flex:none}
+header p{margin:0;opacity:.8;font-size:14px;flex:1 1 260px}
+.wrap{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;padding:20px max(4vw,16px);max-width:1340px;margin:auto}
+@media(max-width:860px){.wrap{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+button,select,input,textarea{font:inherit;color:inherit}
+button{min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel);cursor:pointer}
+button:hover{border-color:var(--indigo)}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+button.pri{background:var(--indigo);color:var(--bg);border-color:var(--indigo);font-weight:700}
+button.on{background:var(--red);border-color:var(--red);color:#fff}
+button:disabled{opacity:.45;cursor:not-allowed}
+select,input[type=text]{min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--panel);padding:0 10px;font-size:16px}
+textarea{width:100%;min-height:76px;border-radius:10px;border:1px solid var(--line);background:var(--bg);padding:10px;font-size:17px;resize:vertical;font-family:"Zen Kaku Gothic New","Noto Sans TC",sans-serif}
+label{font-size:14px;color:var(--mute)}
+.lib summary{font:700 18px "Zen Kaku Gothic New";cursor:pointer;min-height:44px;display:flex;align-items:center}
+.imp{display:grid;gap:8px;margin:10px 0 14px}
+.imp label.btn{display:flex;align-items:center;justify-content:center;min-height:44px;border-radius:10px;border:1px dashed var(--indigo);color:var(--indigo);cursor:pointer;font-weight:700;font-size:15px}
+.imp input{position:absolute;width:1px;height:1px;opacity:0}
+.grp h3{font-size:14px;color:var(--mute);margin:14px 0 6px;font-weight:700}
+.trk{display:flex;width:100%;text-align:left;align-items:center;gap:8px;border:0;border-radius:8px;padding:6px 8px;min-height:40px;background:none}
+.trk:hover{background:var(--bg)}.trk.cur{background:var(--indigo);color:var(--bg)}
+.trk .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--line)}
+.dot.s0{background:var(--warn)}.dot.s1{background:var(--seg2)}.dot.s2{background:var(--ok)}
+.due{background:light-dark(#fbeee9,#2b1a17);border-radius:10px;padding:10px;margin-bottom:6px;font-size:14px}
+.due b{color:var(--red)}
+.empty{border:2px dashed var(--line);border-radius:14px;padding:clamp(24px,5vw,56px);text-align:center}
+.empty h2{font-size:clamp(24px,3vw,32px);margin-bottom:12px}
+.empty ol{text-align:left;max-width:520px;margin:16px auto;color:var(--mute)}
+.drag{outline:3px dashed var(--red);outline-offset:-10px}
+.deck{background:var(--deck);color:var(--deckink);border-radius:16px;padding:16px;display:grid;gap:12px}
+.deck .top{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.deck h2{font-size:clamp(20px,2.6vw,28px);flex:1 1 200px;overflow-wrap:anywhere}
+.deck input[type=text]{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:var(--deckink);width:140px}
+.fig{position:relative;height:150px;border-radius:10px;background:rgba(255,255,255,.05);cursor:pointer}
+.fig>canvas{position:absolute;inset:0;width:100%;height:100%}
+.status{font-size:14px;opacity:.85;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.status b{font:700 18px "Zen Kaku Gothic New"}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.deck button{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:var(--deckink)}
+.deck button.pri{background:var(--red);border-color:var(--red);color:#fff;min-width:96px;font-size:17px}
+.deck button.on{background:#f0d9a8;border-color:#f0d9a8;color:#1d3557}
+.deck select{background:#24406a;border-color:rgba(255,255,255,.2);color:var(--deckink)}
+.seg-mode{display:inline-flex;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.2)}
+.seg-mode button{border:0;border-radius:0}
+.turn{height:10px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden;position:relative}
+.turn i{position:absolute;inset:0 auto 0 0;width:0;background:#f0d9a8}
+.turnlbl{font-size:14px;min-height:20px;color:#f0d9a8}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:16px}
+@media(max-width:760px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.card h3{font-size:18px;margin-bottom:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.hide textarea.ans{filter:blur(6px);cursor:pointer}
+.hint{font-size:13px;color:var(--mute);margin:6px 0 0}
+.rate button{flex:1 1 90px}
+.rate .r0{border-color:var(--warn)}.rate .r1{border-color:var(--seg2)}.rate .r2{border-color:var(--ok)}
+.txline{font:500 19px/1.7 'Zen Kaku Gothic New',sans-serif;margin:8px 0;white-space:pre-wrap}
+.txl{display:flex;gap:12px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;padding:8px 4px;min-height:44px;font:500 17px/1.5 'Zen Kaku Gothic New',sans-serif}
+.txl span{color:var(--mute);font:13px ui-monospace,monospace;flex:none;padding-top:4px}.txl.cur{background:light-dark(#fbeee9,#2b1a17)}
+.msg{font-size:14px;color:var(--red);min-height:20px}
+.kbd{font-size:13px;color:var(--mute)}
+kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;font:13px ui-monospace,monospace}
+input[type=range]{width:140px;accent-color:var(--red)}
+details.adv summary{cursor:pointer;min-height:40px;display:flex;align-items:center;color:var(--mute);font-size:14px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="stamp" aria-hidden="true">聴</div>
+  <h1>日語聽說練習室</h1>
+  <p>搭配《日本語 GOGOGO 1》練習音檔：自動切句、跟讀、錄音對照、聽寫筆記、間隔複習</p>
+</header>
+
+<div class="wrap">
+  <details class="card lib" open>
+    <summary>音檔庫</summary>
+    <div class="imp">
+      <label class="btn" for="fFolder">匯入整個資料夾（電腦）<input id="fFolder" type="file" webkitdirectory multiple></label>
+      <label class="btn" for="fFiles">選擇音檔（可多選）<input id="fFiles" type="file" accept="audio/*,.mp3,.m4a,.wav,.aac" multiple></label>
+      <label class="btn" for="fTx" id="txImpLbl">匯入 AI 逐字稿（.json）<input id="fTx" type="file" accept=".json,application/json"></label>
+      <div class="msg" id="txMsg"></div>
+    </div>
+    <div id="dueBox"></div>
+    <div id="lib"></div>
+    <details class="adv" id="mapBox">
+      <summary>依課本設定課次</summary>
+      <p class="hint">翻課本看每課標示的音軌號碼，一行一課，格式「課名 起-迄」。</p>
+      <textarea id="tMap" placeholder="第1課 1-8&#10;第2課 9-15&#10;第3課 16-22"></textarea>
+      <div class="row"><button id="bMap" class="pri">套用</button></div>
+      <div class="msg" id="mapMsg"></div>
+    </details>
+    <details class="adv">
+      <summary>備份／還原學習紀錄</summary>
+      <p class="hint">筆記、切句、複習排程可複製成文字保存；音檔本身不含在內。</p>
+      <div class="row"><button id="bCopy">複製學習紀錄</button><button id="bRestore">從下方文字還原</button></div>
+      <textarea id="tBackup" placeholder="把先前複製的學習紀錄貼在這裡"></textarea>
+      <div class="msg" id="bkMsg"></div>
+    </details>
+  </details>
+
+  <main id="main">
+    <div class="empty" id="empty">
+      <h2>先把練習音檔放進來</h2>
+      <p>音檔只存在你這台裝置的瀏覽器裡，不會上傳。</p>
+      <ol>
+        <li>電腦：按左邊「匯入整個資料夾」，選桌面上的音檔資料夾</li>
+        <li>或直接把音檔拖曳到這個頁面</li>
+        <li>iPhone：先把音檔存到「檔案」App，再按「選擇音檔」全選</li>
+      </ol>
+      <p class="hint" id="dbNote"></p>
+    </div>
+
+    <section id="player" hidden>
+      <div class="deck">
+        <div class="top">
+          <h2 id="tName"></h2>
+          <label style="color:inherit;opacity:.8">課次 <input type="text" id="tGroup" aria-label="課次分類"></label>
+        </div>
+        <div class="fig" id="fig" title="點一下跳到該句"><canvas id="cv"></canvas></div>
+        <div class="status"><span><b id="sIdx">—</b> <span id="sTime"></span></span><span id="sInfo"></span></div>
+        <div class="ctl">
+          <button id="bPrev" aria-label="上一句">⏮ 上一句</button>
+          <button id="bBack" aria-label="倒退 3 秒">−3s</button>
+          <button class="pri" id="bPlay">▶ 播放</button>
+          <button id="bFwd" aria-label="前進 3 秒">+3s</button>
+          <button id="bNext" aria-label="下一句">下一句 ⏭</button>
+          <select id="rate" aria-label="播放速度">
+            <option value="0.6">0.6×</option><option value="0.75">0.75×</option><option value="0.85">0.85×</option>
+            <option value="1" selected>1.0×</option><option value="1.1">1.1×</option><option value="1.25">1.25×</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <div class="seg-mode" role="group" aria-label="播放模式">
+            <button data-m="cont">連續播放</button><button data-m="loop">單句循環</button><button data-m="shadow">跟讀</button>
+          </div>
+          <span id="shadowOpts" class="ctl" hidden>
+            <label style="color:inherit">複誦時間 <input type="range" id="gap" min="1" max="2.5" step="0.1" value="1.5"> <span id="gapV">1.5×</span></label>
+            <label style="color:inherit">每句 <select id="reps"><option>1</option><option selected>2</option><option>3</option></select> 次</label>
+          </span>
+        </div>
+        <div class="turn" aria-hidden="true"><i id="turnBar"></i></div>
+        <div class="turnlbl" id="turnLbl"></div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h3>這一句的筆記</h3>
+          <label for="nHeard">① 先聽寫：寫下你聽到的（假名即可）</label>
+          <textarea id="nHeard"></textarea>
+          <div id="ansWrap" class="hide" style="margin-top:10px">
+            <label for="nAns">② 對照課本後寫下正解（遮住時點一下顯示）</label>
+            <textarea id="nAns" class="ans"></textarea>
+          </div>
+          <div class="row"><label><input type="checkbox" id="cHide" checked> 遮住正解（先回想再看）</label></div>
+          <p class="hint">正解欄請自行對照課本填寫，之後用「遮住正解」做回想練習。</p>
+          <details class="adv" id="txBox" hidden>
+            <summary>看 AI 逐字稿（先自己聽寫再打開）</summary>
+            <p class="txline" id="txSeg"></p>
+            <div class="row"><button id="bTxUse">帶入正解欄再修改</button></div>
+            <p class="hint">語音辨識產生，同音漢字、人名、地名常出錯（例如「台北」被聽成「太平」），請以課本為準。</p>
+          </details>
+        </div>
+
+        <div class="card">
+          <h3>錄音對照</h3>
+          <div class="row">
+            <button id="bRec">● 錄我的發音</button>
+            <button id="bMine" disabled>▶ 聽我的</button>
+            <button id="bCmp" disabled>⇄ 原音→我的</button>
+          </div>
+          <div class="msg" id="recMsg"></div>
+          <h3 style="margin-top:14px">這個音檔練得如何？</h3>
+          <div class="row rate">
+            <button class="r0" data-q="0">還不熟</button><button class="r1" data-q="1">普通</button><button class="r2" data-q="2">熟練</button>
+          </div>
+          <p class="hint" id="srsInfo">評分後會自動排下次複習日。</p>
+          <details class="adv">
+            <summary>切句調整</summary>
+            <div class="row"><button id="bMerge">與下一句合併</button><button id="bSplit">從目前位置切開</button></div>
+            <div class="row">
+              <label>靜音門檻 <input type="range" id="thr" min="-50" max="-25" step="1" value="-38"> <span id="thrV">-38 dB</span></label>
+            </div>
+            <div class="row">
+              <label>最短停頓 <input type="range" id="sil" min="200" max="900" step="50" value="400"> <span id="silV">400 ms</span></label>
+            </div>
+            <div class="row"><button id="bResplit">重新自動切句</button><button id="bDel">移除這個音檔</button></div>
+            <p class="hint">句子切太碎：調高「最短停頓」；兩句黏在一起：調低它。重新切句後，已寫的筆記會依序對應，可能錯位。</p>
+          </details>
+        </div>
+      </div>
+      <details class="card" id="txAll" hidden style="margin-top:16px">
+        <summary style="font:700 18px 'Zen Kaku Gothic New';cursor:pointer;min-height:44px;display:flex;align-items:center">整軌 AI 逐字稿</summary>
+        <p class="hint">點任一行就播放那一段。</p>
+        <div id="txList"></div>
+      </details>
+      <p class="kbd" style="margin-top:14px"><kbd>空白鍵</kbd> 播放／暫停　<kbd>←</kbd><kbd>→</kbd> 上／下一句　<kbd>R</kbd> 錄音</p>
+    </section>
+  </main>
+</div>
+
+<script>
+{
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const AUD=/\.(mp3|m4a|wav|aac|ogg|flac|wma)$/i;
+const tracks=new Map(); // id -> {id,name,path,blob}
+const metas=new Map();  // id -> {id,name,group,segs,notes,srs}
+let db=null, ac=null, curId=null, an=null, mode='cont', stopAt=null, waitT=null, waitStart=0, waitDur=0, repLeft=0, afterSeg=null, segI=0;
+const audio=new Audio(); audio.preservesPitch=true;
+const mine=new Audio(); const recs=new Map(); let recorder=null;
+const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime()};
+const DAY=864e5;
+
+/* ---------- 儲存 ---------- */
+function openDB(){return new Promise((res,rej)=>{try{const r=indexedDB.open('gogogo-lab',1);
+  r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('files',{keyPath:'id'});d.createObjectStore('meta',{keyPath:'id'})};
+  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}})}
+function put(store,obj){if(!db)return;try{db.transaction(store,'readwrite').objectStore(store).put(obj)}catch(e){}}
+function del(store,id){if(!db)return;try{db.transaction(store,'readwrite').objectStore(store).delete(id)}catch(e){}}
+function getAll(store){return new Promise(res=>{try{const r=db.transaction(store).objectStore(store).getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>res([])}catch(e){res([])}})}
+let saveT=null;const saveMeta=()=>{clearTimeout(saveT);saveT=setTimeout(()=>{const m=metas.get(curId);if(m)put('meta',m)},300)};
+
+/* ---------- 匯入 ---------- */
+const pad=n=>String(n).padStart(2,'0');
+const GG_T=["五十音・發音", "挨拶", "大切な表現", "単語表", "練習1", "練習2", "会話1", "練習3", "練習4", "練習5", "練習6", "練習7 数字1", "練習8", "会話2", "大切な表現", "単語表", "練習1", "会話1", "練習2", "練習3", "会話2", "練習4", "会話3", "大切な表現", "単語表", "練習1 時間の言い方", "練習2", "会話1", "練習3", "会話2", "練習4", "会話3", "大切な表現", "単語表", "練習1 数字2", "練習2 値段の言い方", "練習3", "練習4 数詞1", "練習5", "練習6", "会話1", "練習7 数詞2", "練習8", "会話2", "大切な表現", "単語表", "練習1 季節・日・曜日", "練習2", "練習3", "会話1", "練習4 位置の言い方", "練習5", "会話2", "大切な表現", "単語表", "練習1 時を表す言葉", "練習2", "会話1", "練習3", "練習4", "会話2", "練習5", "練習6", "練習7", "会話3", "大切な表現", "単語表", "練習1 動詞", "練習2", "練習3", "会話1", "練習4", "会話2", "練習5", "会話3", "練習6", "会話4", "練習7 期間の言い方", "練習8", "会話5", "大切な表現", "単語表", "練習1 形容詞", "練習2", "会話1", "練習3", "会話2", "練習4", "会話3", "練習5", "会話4", "大切な表現", "単語表", "練習1 形容詞2", "練習2", "練習3", "会話1", "練習4", "練習5", "会話2", "「いい」の活用", "大切な表現", "単語表", "練習1", "練習2", "会話1", "練習3", "練習4", "練習5", "練習6", "会話2", "教室用語"];
+const GG_L=[[1, 2, "入門 發音・挨拶"], [3, 14, "第1課"], [15, 23, "第2課"], [24, 32, "第3課"], [33, 44, "第4課"], [45, 53, "第5課"], [54, 65, "第6課"], [66, 80, "第7課"], [81, 91, "第8課"], [92, 101, "第9課"], [102, 111, "第10課"], [112, 112, "附錄 教室用語"]];
+const ggNo=name=>{const m=String(name).match(/初級-(\d+)/);const n=m?+m[1]:NaN;return n>=1&&n<=112?n:null};
+const ggLesson=n=>{const r=GG_L.find(r=>n>=r[0]&&n<=r[1]);return r?r[2]:null};
+
+function trackNo(name){const nums=name.replace(AUD,'').match(/\d+/g);if(!nums)return null;
+  const a=parseInt(nums[0],10),b=parseInt(nums[nums.length-1],10);return nums.length===1||a===b?a:null}
+const tenGroup=n=>{const lo=Math.floor((n-1)/10)*10+1;return `音軌 ${pad(lo)}–${pad(lo+9)}`};
+function groupOf(f){
+  const p=(f.webkitRelativePath||'').split('/');
+  const g=ggNo(f.name);if(g)return ggLesson(g);
+  if(p.length>2)return p[p.length-2];
+  const n=trackNo(f.name);if(n!=null)return tenGroup(n);
+  const nums=f.name.replace(AUD,'').match(/\d+/g);
+  if(nums&&nums.length>=2)return '第 '+parseInt(nums[0],10)+' 課';
+  return '全部音軌';
+}
+const label=t=>{const g=ggNo(t.name);if(g)return pad(g)+' '+GG_T[g-1];const n=trackNo(t.name);return n!=null?'音軌 '+pad(n):t.name};
+async function importFiles(list){
+  const fs=[...list].filter(f=>AUD.test(f.name)||/^audio\//.test(f.type));
+  if(!fs.length)return;
+  for(const f of fs){
+    const path=f.webkitRelativePath||f.name, id=path+'|'+f.size;
+    const t={id,name:f.name.replace(AUD,''),path,blob:f};
+    tracks.set(id,t);put('files',t);
+    if(!metas.has(id)){const m={id,name:t.name,group:groupOf(f),segs:null,notes:[],srs:null};metas.set(id,m);put('meta',m)}
+  }
+  renderLib();
+  if(!curId)select(sorted()[0].id);
+}
+$('#fFolder').onchange=e=>{importFiles(e.target.files);e.target.value=''};
+$('#fFiles').onchange=e=>{importFiles(e.target.files);e.target.value=''};
+document.addEventListener('dragover',e=>{e.preventDefault();document.body.classList.add('drag')});
+document.addEventListener('dragleave',e=>{if(!e.relatedTarget)document.body.classList.remove('drag')});
+document.addEventListener('drop',e=>{e.preventDefault();document.body.classList.remove('drag');importFiles(e.dataTransfer.files)});
+
+/* ---------- 音檔庫 ---------- */
+const sorted=()=>[...tracks.values()].sort((a,b)=>a.path.localeCompare(b.path,undefined,{numeric:true}));
+function stat(m){if(!m.srs)return -1;return m.srs.q}
+function renderLib(){
+  const groups=new Map();
+  for(const t of sorted()){const g=metas.get(t.id).group||'全部音軌';if(!groups.has(g))groups.set(g,[]);groups.get(g).push(t)}
+  const gk=[...groups.keys()];
+  $('#lib').innerHTML=gk.map(g=>`<div class="grp"><h3>${esc(g)}</h3>${groups.get(g).map(t=>{const m=metas.get(t.id);
+    return `<button class="trk${t.id===curId?' cur':''}" data-id="${esc(t.id)}"><span class="dot s${stat(m)}"></span><span class="n" title="${esc(t.name)}">${esc(label(t))}</span></button>`}).join('')}</div>`).join('');
+  $$('#lib .trk').forEach(b=>b.onclick=()=>select(b.dataset.id));
+  const ms=[...metas.values()].filter(m=>tracks.has(m.id));
+  const due=ms.filter(m=>m.srs&&m.srs.due<=today()), fresh=ms.filter(m=>!m.srs);
+  $('#dueBox').innerHTML=ms.length?`<div class="due">今天要複習 <b>${due.length}</b> 個，還沒練過 <b>${fresh.length}</b> 個${due.length?'<br>'+due.slice(0,6).map(m=>esc(m.name)).join('、'):''}</div>`:'';
+  $('#empty').hidden=tracks.size>0;$('#player').hidden=!curId;
+}
+
+/* ---------- 分析與切句 ---------- */
+async function decode(blob){
+  const ab=await blob.arrayBuffer();
+  ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+  return await new Promise((res,rej)=>{const p=ac.decodeAudioData(ab,res,rej);if(p&&p.then)p.then(res,rej)});
+}
+function analyze(buf){
+  const sr=buf.sampleRate,hop=Math.round(sr*0.02),d0=buf.getChannelData(0),d1=buf.numberOfChannels>1?buf.getChannelData(1):null;
+  const F=Math.floor(buf.length/hop),rms=new Float32Array(F);let max=0;
+  for(let f=0;f<F;f++){let s=0;const o=f*hop;for(let i=0;i<hop;i+=2){let v=d0[o+i];if(d1)v=(v+d1[o+i])/2;s+=v*v}const r=Math.sqrt(s/(hop/2));rms[f]=r;if(r>max)max=r}
+  return {rms,max,dur:buf.duration};
+}
+function segment(a,thrDb,silMs){
+  const N=a.rms.length,minSil=Math.round(silMs/20),out=[];
+  const db=new Float32Array(N);for(let f=0;f<N;f++)db[f]=Math.max(-90,20*Math.log10(a.rms[f]/a.max+1e-9));
+  const act=[...db].filter(v=>v>-89).sort((x,y)=>x-y),floor=act.length?act[Math.floor(act.length*0.1)]:-90;
+  a.noisy=floor>-45; // 背景音樂／底噪明顯：改用「相對附近音量」判斷停頓
+  let loud;
+  if(a.noisy){const W=37,lm=new Float32Array(N);
+    for(let f=0;f<N;f++){let m=-90;for(let k=Math.max(0,f-W);k<=Math.min(N-1,f+W);k++)if(db[k]>m)m=db[k];lm[f]=m}
+    const D=15+(thrDb+38)*0.5;loud=f=>db[f]>=lm[f]-D&&db[f]>-60}
+  else loud=f=>db[f]>thrDb;
+  let st=-1,last=-1,run=0;
+  for(let f=0;f<N;f++){
+    if(loud(f)){if(st<0)st=f;last=f;run=0}
+    else if(st>=0&&++run>=minSil){out.push([st,last+1]);st=-1;run=0}
+  }
+  if(st>=0)out.push([st,last+1]);
+  const segs=[];
+  for(const [s,e] of out){const S=Math.max(0,s*0.02-0.12),E=Math.min(a.dur,e*0.02+0.18);if(E-S<0.35)continue;
+    if(segs.length&&S<=segs[segs.length-1].e)segs[segs.length-1].e=E;else segs.push({s:S,e:E})}
+  return segs.length?segs:[{s:0,e:a.dur}];
+}
+
+/* ---------- 選取音檔 ---------- */
+async function select(id){
+  stopAll();curId=id;an=null;segI=0;
+  const t=tracks.get(id),m=metas.get(id);
+  if(audio.src)URL.revokeObjectURL(audio.src);
+  audio.src=URL.createObjectURL(t.blob);audio.playbackRate=+$('#rate').value;
+  $('#tName').textContent=label(t)+(label(t)!==t.name?'（'+t.name+'）':'');$('#tGroup').value=m.group||'';
+  renderLib();buildTx();renderSeg();renderSrs();draw();
+  $('#sInfo').textContent='分析音檔中…';
+  try{
+    const buf=await decode(t.blob);if(curId!==id)return;
+    an=analyze(buf);
+    if(!m.segs){m.segs=segment(an,+$('#thr').value,+$('#sil').value);put('meta',m)}
+    $('#sInfo').textContent=`共 ${m.segs.length} 句・${fmt(an.dur)}${an.noisy?'・有背景音，已自動調整切句':''}`;
+  }catch(e){$('#sInfo').textContent='無法分析這個格式，仍可一般播放';if(!m.segs)m.segs=[]}
+  buildTx();renderSeg();draw();
+}
+$('#tGroup').onchange=e=>{const m=metas.get(curId);m.group=e.target.value.trim()||'全部音軌';put('meta',m);renderLib()};
+
+/* ---------- 波形 ---------- */
+const cv=$('#cv'),fig=$('#fig');
+function draw(){
+  const W=fig.clientWidth,H=fig.clientHeight,dpr=window.devicePixelRatio||1;if(!W)return;
+  cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+  const m=metas.get(curId);if(!m)return;
+  const dur=an?an.dur:(audio.duration||0);if(!dur)return;const X=t=>t/dur*W;
+  (m.segs||[]).forEach((s,i)=>{g.fillStyle=i===segI?'rgba(209,67,43,.35)':(i%2?'rgba(255,255,255,.07)':'rgba(255,255,255,.13)');g.fillRect(X(s.s),0,Math.max(2,X(s.e)-X(s.s)),H)});
+  if(an){const n=Math.floor(W/3),step=an.rms.length/n;
+    for(let k=0;k<n;k++){let v=0;const a=Math.floor(k*step),b=Math.floor((k+1)*step);for(let f=a;f<b;f++)if(an.rms[f]>v)v=an.rms[f];
+      const h=Math.max(2,Math.sqrt(v/an.max)*(H-20));const t=(k+.5)/n*dur,s=m.segs&&m.segs[segI];
+      g.fillStyle=s&&t>=s.s&&t<=s.e?'#ffd9cc':'rgba(238,241,246,.75)';g.fillRect(k*3,(H-h)/2,2,h)}}
+  g.fillStyle='#f0d9a8';g.fillRect(X(audio.currentTime||0)-1,0,2,H);
+}
+const ro=new ResizeObserver(draw);ro.observe(fig);
+fig.onclick=e=>{const m=metas.get(curId),dur=an?an.dur:audio.duration;if(!m||!dur)return;
+  const r=fig.getBoundingClientRect(),t=(e.clientX-r.left)/r.width*dur;
+  const i=(m.segs||[]).findIndex(s=>t>=s.s&&t<=s.e);
+  if(i>=0){segI=i;mode==='cont'?(stopAll(),audio.currentTime=m.segs[i].s,audio.play().catch(()=>{})):playSeg(i)}else{audio.currentTime=t}
+  renderSeg();draw()};
+
+/* ---------- 播放引擎 ---------- */
+const fmt=t=>{t=Math.max(0,t||0);return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0')};
+const segs=()=>(metas.get(curId)||{}).segs||[];
+function clearWait(){clearTimeout(waitT);waitT=null;waitDur=0;$('#turnBar').style.width='0';$('#turnLbl').textContent=''}
+function stopAll(){audio.pause();mine.pause();clearWait();stopAt=null;afterSeg=null;updPlay()}
+function playSeg(i,keepReps){
+  const S=segs();if(!S.length){audio.play().catch(()=>{});return}
+  i=Math.max(0,Math.min(S.length-1,i));clearWait();
+  if(i!==segI||!keepReps)repLeft=+$('#reps').value;
+  segI=i;audio.currentTime=S[i].s;stopAt=mode==='cont'?null:S[i].e;
+  audio.play().catch(()=>{});renderSeg();updPlay();
+}
+function onSegEnd(){
+  audio.pause();stopAt=null;
+  if(afterSeg){const f=afterSeg;afterSeg=null;f();return}
+  const S=segs(),s=S[segI];
+  if(mode==='loop'){waitT=setTimeout(()=>playSeg(segI,true),700)}
+  else if(mode==='shadow'){
+    waitDur=((s.e-s.s)/audio.playbackRate)*+$('#gap').value*1000+300;waitStart=performance.now();
+    $('#turnLbl').textContent=`換你說！（${repLeft>1?'再 '+(repLeft-1)+' 次':'接著下一句'}）`;
+    waitT=setTimeout(()=>{repLeft--;if(repLeft>0)playSeg(segI,true);else if(segI<S.length-1)playSeg(segI+1);else{clearWait();$('#turnLbl').textContent='這個音檔跟讀完成，記得在右邊評分'}},waitDur);
+  }
+  updPlay();
+}
+function tick(){
+  if(!audio.paused){
+    if(stopAt!=null&&audio.currentTime>=stopAt)onSegEnd();
+    else if(mode==='cont'){const S=segs(),t=audio.currentTime;const i=S.findIndex(s=>t>=s.s&&t<s.e);if(i>=0&&i!==segI){segI=i;renderSeg()}}
+    draw();$('#sTime').textContent=fmt(audio.currentTime)+' / '+fmt(audio.duration);
+  }
+  if(waitT&&waitDur){$('#turnBar').style.width=Math.min(100,(performance.now()-waitStart)/waitDur*100)+'%'}
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+audio.onended=()=>{stopAt=null;updPlay();draw()};
+audio.onloadedmetadata=()=>{draw();$('#sTime').textContent='0:00 / '+fmt(audio.duration)};
+function updPlay(){const busy=!audio.paused||waitT;$('#bPlay').textContent=busy?'❚❚ 暫停':'▶ 播放'}
+function toggle(){
+  if(!audio.paused||waitT){stopAll();return}
+  if(mode==='cont'){const s=segs()[segI];if(s&&(audio.currentTime<s.s-0.05||audio.currentTime>s.e))audio.currentTime=s.s;audio.play().catch(()=>{});updPlay()}
+  else playSeg(segI);
+}
+$('#bPlay').onclick=toggle;
+const jump=d=>{const S=segs();if(!S.length)return;const i=Math.max(0,Math.min(S.length-1,segI+d));const was=!audio.paused||waitT;
+  if(was)playSeg(i);else{segI=i;audio.currentTime=S[i].s;renderSeg();draw()}};
+$('#bPrev').onclick=()=>jump(-1);$('#bNext').onclick=()=>jump(1);
+$('#bBack').onclick=()=>{audio.currentTime=Math.max(0,audio.currentTime-3);draw()};
+$('#bFwd').onclick=()=>{audio.currentTime=Math.min(audio.duration||0,audio.currentTime+3);draw()};
+$('#rate').onchange=e=>{audio.playbackRate=+e.target.value;try{localStorage.setItem('gg-rate',e.target.value)}catch(_){}};
+function setMode(m){mode=m;$$('.seg-mode button').forEach(b=>b.classList.toggle('on',b.dataset.m===m));$('#shadowOpts').hidden=m!=='shadow';
+  if(!audio.paused){const s=segs()[segI];stopAt=m==='cont'?null:(s?s.e:null)}clearWait();updPlay();try{localStorage.setItem('gg-mode',m)}catch(_){}}
+$$('.seg-mode button').forEach(b=>b.onclick=()=>setMode(b.dataset.m));
+$('#gap').oninput=e=>$('#gapV').textContent=(+e.target.value).toFixed(1)+'×';
+
+/* ---------- 句子與筆記 ---------- */
+function renderSeg(){
+  const S=segs(),m=metas.get(curId);if(!m)return;
+  $('#sIdx').textContent=S.length?`第 ${segI+1} / ${S.length} 句`:'—';
+  const n=m.notes[segI]||{};$('#nHeard').value=n.h||'';$('#nAns').value=n.a||'';
+  const r=recs.get(curId+'|'+segI);$('#bMine').disabled=$('#bCmp').disabled=!r;
+  if(typeof renderTx==='function')renderTx();
+}
+function setNote(k,v){const m=metas.get(curId);if(!m)return;while(m.notes.length<=segI)m.notes.push(null);m.notes[segI]=Object.assign({},m.notes[segI],{[k]:v});saveMeta()}
+$('#nHeard').oninput=e=>setNote('h',e.target.value);
+$('#nAns').oninput=e=>setNote('a',e.target.value);
+$('#cHide').onchange=e=>$('#ansWrap').classList.toggle('hide',e.target.checked);
+$('#nAns').onfocus=()=>$('#ansWrap').classList.remove('hide');
+$('#nAns').onblur=()=>$('#ansWrap').classList.toggle('hide',$('#cHide').checked);
+
+$('#bMerge').onclick=()=>{const m=metas.get(curId),S=m.segs;if(!S||segI>=S.length-1)return;
+  S[segI].e=S[segI+1].e;S.splice(segI+1,1);
+  const a=m.notes[segI]||{},b=m.notes[segI+1]||{};
+  m.notes[segI]={h:[a.h,b.h].filter(Boolean).join(' '),a:[a.a,b.a].filter(Boolean).join(' ')};m.notes.splice(segI+1,1);
+  put('meta',m);buildTx();renderSeg();draw();$('#sInfo').textContent=`共 ${S.length} 句`};
+$('#bSplit').onclick=()=>{const m=metas.get(curId),S=m.segs,s=S&&S[segI],t=audio.currentTime;if(!s||t<=s.s+0.3||t>=s.e-0.3)return;
+  S.splice(segI+1,0,{s:t,e:s.e});s.e=t;while(m.notes.length<=segI)m.notes.push(null);m.notes.splice(segI+1,0,null);
+  put('meta',m);buildTx();renderSeg();draw();$('#sInfo').textContent=`共 ${S.length} 句`};
+$('#thr').oninput=e=>$('#thrV').textContent=e.target.value+' dB';
+$('#sil').oninput=e=>$('#silV').textContent=e.target.value+' ms';
+$('#bResplit').onclick=()=>{if(!an)return;const m=metas.get(curId);stopAll();m.segs=segment(an,+$('#thr').value,+$('#sil').value);segI=0;put('meta',m);buildTx();renderSeg();draw();$('#sInfo').textContent=`共 ${m.segs.length} 句・${fmt(an.dur)}${an.noisy?'・有背景音，已自動調整切句':''}`};
+let delArm=0;
+$('#bDel').onclick=e=>{if(Date.now()-delArm>3000){delArm=Date.now();e.target.textContent='再按一次確認移除';setTimeout(()=>e.target.textContent='移除這個音檔',3000);return}
+  stopAll();tracks.delete(curId);metas.delete(curId);del('files',curId);del('meta',curId);curId=null;const f=sorted()[0];if(f)select(f.id);else renderLib()};
+
+/* ---------- 錄音 ---------- */
+$('#bRec').onclick=async()=>{
+  if(recorder&&recorder.state==='recording'){recorder.stop();return}
+  try{
+    const st=await navigator.mediaDevices.getUserMedia({audio:true});
+    const chunks=[];recorder=new MediaRecorder(st);const key=curId+'|'+segI;
+    recorder.ondataavailable=e=>chunks.push(e.data);
+    recorder.onstop=()=>{st.getTracks().forEach(t=>t.stop());const old=recs.get(key);if(old)URL.revokeObjectURL(old);
+      recs.set(key,URL.createObjectURL(new Blob(chunks,{type:recorder.mimeType})));$('#bRec').textContent='● 重錄';$('#bRec').classList.remove('on');$('#recMsg').textContent='';renderSeg()};
+    stopAll();recorder.start();$('#bRec').textContent='■ 停止錄音';$('#bRec').classList.add('on');$('#recMsg').textContent='錄音中…說完按停止';
+  }catch(e){$('#recMsg').textContent='無法使用麥克風。claude.ai 網頁版本身不支援錄音，請改用你的 GitHub 網址版或離線版；若已在那裡，請到 Safari 的「網站設定」允許麥克風後重試。'}
+};
+$('#bMine').onclick=()=>{const r=recs.get(curId+'|'+segI);if(!r)return;stopAll();mine.src=r;mine.play().catch(()=>{})};
+$('#bCmp').onclick=()=>{const r=recs.get(curId+'|'+segI);if(!r)return;const keep=mode;mode='loop';playSeg(segI);mode=keep;
+  afterSeg=()=>{mine.src=r;setTimeout(()=>mine.play().catch(()=>{}),300)}};
+
+/* ---------- 間隔複習 ---------- */
+function renderSrs(){const m=metas.get(curId);if(!m)return;const s=m.srs;
+  if(!s){$('#srsInfo').textContent='還沒評分。練完一輪後評分，系統會排下次複習日。';return}
+  const d=new Date(s.due),days=Math.round((s.due-today())/DAY);
+  $('#srsInfo').textContent=`下次複習：${d.getMonth()+1}/${d.getDate()}（${days<=0?'今天':days+' 天後'}）・已練 ${s.reps} 次`}
+$$('.rate button').forEach(b=>b.onclick=()=>{const m=metas.get(curId);if(!m)return;const q=+b.dataset.q,s=m.srs||{int:0,reps:0};
+  s.int=q===0?1:q===1?Math.max(2,Math.round(s.int*1.8)):Math.max(4,Math.round(s.int*2.6));
+  s.q=q;s.reps++;s.due=today()+s.int*DAY;m.srs=s;put('meta',m);renderSrs();renderLib()});
+
+/* ---------- AI 逐字稿 ---------- */
+const EMBED_TX=null;/*EMBED_TX*/
+let TXMAP=new Map(),txBySeg=[];
+function loadTx(arr){TXMAP=new Map();for(const d of arr)if(d&&d.n&&Array.isArray(d.segs))TXMAP.set(+d.n,d.segs);return TXMAP.size}
+try{if(EMBED_TX)loadTx(EMBED_TX);else{const r=localStorage.getItem('gg-tx');if(r)loadTx(JSON.parse(r))}}catch(_){}
+if(EMBED_TX)$('#txImpLbl').hidden=true;
+const curTx=()=>{const m=metas.get(curId);const n=m&&ggNo(m.name);return n?TXMAP.get(n)||null:null};
+function buildTx(){
+  const tx=curTx(),S=segs();txBySeg=S.map(()=>[]);
+  $('#txBox').hidden=$('#txAll').hidden=!tx;if(!tx)return;
+  for(const l of tx){let bi=-1,bo=0;S.forEach((s,i)=>{const o=Math.min(s.e,l.e)-Math.max(s.s,l.s);if(o>bo){bo=o;bi=i}});if(bi>=0)txBySeg[bi].push(l.t)}
+  $('#txList').innerHTML=tx.map((l,i)=>`<button class="txl" data-i="${i}"><span>${fmt(l.s)}</span>${esc(l.t)}</button>`).join('');
+  $$('#txList .txl').forEach(b=>b.onclick=()=>{const l=tx[+b.dataset.i];stopAll();audio.currentTime=l.s;stopAt=l.e+0.15;afterSeg=()=>{};audio.play().catch(()=>{});updPlay()});
+}
+function renderTx(){if($('#txBox').hidden)return;const t=(txBySeg[segI]||[]).join('\n');$('#txSeg').textContent=t||'（這一句沒有對應的辨識文字）'}
+$('#bTxUse').onclick=()=>{const t=(txBySeg[segI]||[]).join('\n');if(!t)return;$('#nAns').value=t;setNote('a',t)};
+$('#fTx').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{const arr=JSON.parse(await f.text());const n=loadTx(arr);try{localStorage.setItem('gg-tx',JSON.stringify(arr))}catch(_){}
+    $('#txMsg').textContent=`已載入 ${n} 軌逐字稿`;if(curId){buildTx();renderTx()}}
+  catch(err){$('#txMsg').textContent='檔案格式不對，請選 gogogo1_transcripts.json'}};
+
+/* ---------- 課次對照 ---------- */
+try{$('#tMap').value=localStorage.getItem('gg-map')||''}catch(_){}
+$('#bMap').onclick=()=>{
+  const lines=$('#tMap').value.split('\n').map(s=>s.trim()).filter(Boolean),rules=[],bad=[];
+  for(const l of lines){const m=l.match(/^(.+?)[\s:：]+(\d+)\s*(?:[-–~～到]\s*(\d+))?$/);
+    if(m)rules.push({g:m[1].trim(),a:+m[2],b:+(m[3]||m[2])});else bad.push(l)}
+  let n=0;
+  for(const t of tracks.values()){const k=trackNo(t.name);if(k==null)continue;
+    const r=rules.find(r=>k>=r.a&&k<=r.b);if(r){const m=metas.get(t.id);m.group=r.g;put('meta',m);n++}}
+  try{localStorage.setItem('gg-map',$('#tMap').value)}catch(_){}
+  $('#mapMsg').textContent=`已設定 ${n} 個音軌`+(bad.length?`；看不懂的行：${bad.join('、')}`:'');
+  renderLib();if(curId)$('#tGroup').value=metas.get(curId).group;
+};
+
+/* ---------- 備份 ---------- */
+$('#bCopy').onclick=async()=>{const data=[...metas.values()].map(m=>({name:m.name,group:m.group,segs:m.segs,notes:m.notes,srs:m.srs}));
+  const txt=JSON.stringify({v:1,data});$('#tBackup').value=txt;
+  try{await navigator.clipboard.writeText(txt);$('#bkMsg').textContent='已複製，可貼到記事本保存'}catch(e){$('#bkMsg').textContent='無法自動複製，請手動全選上方文字複製'}};
+$('#bRestore').onclick=()=>{try{const o=JSON.parse($('#tBackup').value);let n=0;
+  for(const d of o.data){for(const m of metas.values())if(m.name===d.name){Object.assign(m,{group:d.group,segs:d.segs,notes:d.notes||[],srs:d.srs});put('meta',m);n++}}
+  $('#bkMsg').textContent=`已還原 ${n} 個音檔的紀錄（需先匯入同名音檔）`;renderLib();if(curId)select(curId)}catch(e){$('#bkMsg').textContent='格式不正確，請貼上完整的備份文字'}};
+
+/* ---------- 鍵盤 ---------- */
+document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)||!curId)return;
+  if(e.code==='Space'){e.preventDefault();toggle()}else if(e.key==='ArrowLeft'){e.preventDefault();jump(-1)}else if(e.key==='ArrowRight'){e.preventDefault();jump(1)}
+  else if(e.key==='r'||e.key==='R')$('#bRec').click()});
+
+/* ---------- 啟動 ---------- */
+try{const r=localStorage.getItem('gg-rate');if(r)$('#rate').value=r;audio.playbackRate=+$('#rate').value}catch(_){}
+let m0='shadow';try{m0=localStorage.getItem('gg-mode')||'shadow'}catch(_){}setMode(m0);
+(async()=>{
+  try{db=await openDB();const [fs,ms]=await Promise.all([getAll('files'),getAll('meta')]);
+    ms.forEach(m=>{const g=ggNo(m.name);if(g&&/^音軌 /.test(m.group||'')){m.group=ggLesson(g);put('meta',m)}metas.set(m.id,m)});fs.forEach(t=>tracks.set(t.id,t));
+    $('#dbNote').textContent='匯入後會保存在這個瀏覽器，下次打開不用重新匯入。';
+  }catch(e){$('#dbNote').textContent='這個瀏覽器無法保存音檔，每次開啟需重新匯入。'}
+  renderLib();const f=sorted()[0];if(f)select(f.id);
+})();
+}
+</script>
+</body>
+</html>

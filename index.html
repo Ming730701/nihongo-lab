@@ -42,6 +42,15 @@ label{font-size:14px;color:var(--mute)}
 .imp{display:grid;gap:8px;margin:10px 0 14px}
 .imp label.btn{display:flex;align-items:center;justify-content:center;min-height:44px;border-radius:10px;border:1px dashed var(--indigo);color:var(--indigo);cursor:pointer;font-weight:700;font-size:15px}
 .imp input{position:absolute;width:1px;height:1px;opacity:0}
+.grp{border-bottom:1px solid var(--line)}
+.grp summary{display:flex;justify-content:space-between;align-items:center;min-height:48px;cursor:pointer;font:700 16px 'Zen Kaku Gothic New',sans-serif;list-style:none;padding:0 4px}
+.grp summary::-webkit-details-marker{display:none}
+.grp summary::after{content:'▸';color:var(--mute);margin-left:8px;transition:transform .15s}.grp[open] summary::after{transform:rotate(90deg)}
+.grp .gn{flex:1}.grp .gc{font:13px ui-monospace,monospace;color:var(--mute)}
+.grp[open]{padding-bottom:8px}
+.pick,.dock,.sheethead,.scrim{display:none}
+.toast{display:none}
+.impbtn{width:100%;margin:10px 0;color:var(--indigo);font-weight:700}
 .grp h3{font-size:14px;color:var(--mute);margin:14px 0 6px;font-weight:700}
 .trk{display:flex;width:100%;text-align:left;align-items:center;gap:8px;border:0;border-radius:8px;padding:6px 8px;min-height:40px;background:none}
 .trk:hover{background:var(--bg)}.trk.cur{background:var(--indigo);color:var(--bg)}
@@ -88,6 +97,26 @@ label{font-size:14px;color:var(--mute)}
 kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;font:13px ui-monospace,monospace}
 input[type=range]{width:140px;accent-color:var(--red)}
 details.adv summary{cursor:pointer;min-height:40px;display:flex;align-items:center;color:var(--mute);font-size:14px}
+@media(max-width:760px){
+  header{padding:10px 14px}header p{display:none}header h1{font-size:20px}.stamp{width:34px;height:34px;font-size:18px}
+  .wrap{padding:10px 10px calc(96px + env(safe-area-inset-bottom))}
+  .lib{position:fixed;left:0;right:0;bottom:0;max-height:82vh;overflow:auto;z-index:30;border-radius:18px 18px 0 0;transform:translateY(105%);transition:transform .25s;padding-top:0;box-shadow:0 -8px 30px rgba(0,0,0,.25)}
+  .lib.show{transform:none}.lib>summary{display:none}
+  .sheethead{display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--panel);padding:12px 0;z-index:1;border-bottom:1px solid var(--line)}
+  .sheethead b{font:700 18px 'Zen Kaku Gothic New'}.sheethead button{min-width:44px}
+  .scrim{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:25}.scrim[hidden]{display:none}
+  .pick{display:flex;align-items:center;gap:10px;width:100%;margin-bottom:10px;min-height:52px;font:700 17px 'Zen Kaku Gothic New',sans-serif;background:var(--panel);text-align:left}
+  .pick #pickName{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pick .pk{color:var(--mute)}
+  .dock{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:20;gap:8px;justify-content:space-around;align-items:center;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:var(--deck);box-shadow:0 -4px 20px rgba(0,0,0,.2)}
+  .dock button{flex:1;min-height:52px;font-size:22px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#eef1f6;border-radius:14px;padding:0}
+  .dock .big{flex:1.4;background:var(--red);border-color:var(--red);font-size:24px}
+  .dock button.on{background:#f0d9a8;color:#1d3557}
+  #bPrev,#bPlay,#bNext{display:none}
+  .fig{height:110px}.deck{padding:12px;gap:10px}.deck h2{font-size:18px}.deck .top label{display:none}
+  .kbd{display:none}
+  .toast{display:block;position:fixed;left:12px;right:12px;bottom:calc(80px + env(safe-area-inset-bottom));z-index:21;background:#18202b;color:#fff;border-radius:12px;padding:12px 14px;font-size:15px;line-height:1.5;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+  .toast[hidden]{display:none}
+}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -101,6 +130,8 @@ details.adv summary{cursor:pointer;min-height:40px;display:flex;align-items:cent
 <div class="wrap">
   <details class="card lib" open>
     <summary>音檔庫</summary>
+    <div class="sheethead"><b>選擇音檔</b><button id="bClose" aria-label="關閉">✕</button></div>
+    <button id="bImp" class="impbtn" hidden>＋ 匯入音檔／逐字稿</button>
     <div class="imp">
       <label class="btn" for="fFolder">匯入整個資料夾（電腦）<input id="fFolder" type="file" webkitdirectory multiple></label>
       <label class="btn" for="fFiles">選擇音檔（可多選）<input id="fFiles" type="file" accept="audio/*,.mp3,.m4a,.wav,.aac" multiple></label>
@@ -125,7 +156,9 @@ details.adv summary{cursor:pointer;min-height:40px;display:flex;align-items:cent
     </details>
   </details>
 
+  <div class="scrim" id="scrim" hidden></div>
   <main id="main">
+    <button class="pick" id="bPick"><span class="pk">☰</span><span id="pickName">選擇音檔</span><span class="pk">▾</span></button>
     <div class="empty" id="empty">
       <h2>先把練習音檔放進來</h2>
       <p>音檔只存在你這台裝置的瀏覽器裡，不會上傳。</p>
@@ -228,6 +261,14 @@ details.adv summary{cursor:pointer;min-height:40px;display:flex;align-items:cent
   </main>
 </div>
 
+<div class="toast" id="toast" hidden></div>
+<nav class="dock" aria-label="播放控制">
+  <button id="dPrev" aria-label="上一句">⏮</button>
+  <button id="dPlay" class="big" aria-label="播放">▶</button>
+  <button id="dNext" aria-label="下一句">⏭</button>
+  <button id="dRec" aria-label="錄音">●</button>
+  <button id="dCmp" aria-label="原音→我的" disabled>⇄</button>
+</nav>
 <script>
 {
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -296,16 +337,22 @@ document.addEventListener('drop',e=>{e.preventDefault();document.body.classList.
 /* ---------- 音檔庫 ---------- */
 const sorted=()=>[...tracks.values()].sort((a,b)=>a.path.localeCompare(b.path,undefined,{numeric:true}));
 function stat(m){if(!m.srs)return -1;return m.srs.q}
+const openG=new Set();let impOpen=false;
 function renderLib(){
   const groups=new Map();
   for(const t of sorted()){const g=metas.get(t.id).group||'全部音軌';if(!groups.has(g))groups.set(g,[]);groups.get(g).push(t)}
   const gk=[...groups.keys()];
-  $('#lib').innerHTML=gk.map(g=>`<div class="grp"><h3>${esc(g)}</h3>${groups.get(g).map(t=>{const m=metas.get(t.id);
-    return `<button class="trk${t.id===curId?' cur':''}" data-id="${esc(t.id)}"><span class="dot s${stat(m)}"></span><span class="n" title="${esc(t.name)}">${esc(label(t))}</span></button>`}).join('')}</div>`).join('');
-  $$('#lib .trk').forEach(b=>b.onclick=()=>select(b.dataset.id));
+  const cg=curId&&metas.get(curId)?metas.get(curId).group:null;if(cg)openG.add(cg);
+  $('#lib').innerHTML=gk.map((g,gi)=>{const ts=groups.get(g),done=ts.filter(t=>stat(metas.get(t.id))===2).length;
+    return `<details class="grp" data-gi="${gi}"${openG.has(g)?' open':''}><summary><span class="gn">${esc(g)}</span><span class="gc">${done}/${ts.length}</span></summary>${ts.map(t=>{const m=metas.get(t.id);
+    return `<button class="trk${t.id===curId?' cur':''}" data-id="${esc(t.id)}"><span class="dot s${stat(m)}"></span><span class="n" title="${esc(t.name)}">${esc(label(t))}</span></button>`}).join('')}</details>`}).join('');
+  $$('#lib details.grp').forEach(d=>d.ontoggle=()=>{const g=gk[+d.dataset.gi];d.open?openG.add(g):openG.delete(g)});
+  $$('#lib .trk').forEach(b=>b.onclick=()=>{closeSheet();select(b.dataset.id)});
+  const ct=curId&&tracks.get(curId);$('#pickName').textContent=ct?(cg?cg+'・':'')+label(ct):'選擇音檔';
   const ms=[...metas.values()].filter(m=>tracks.has(m.id));
   const due=ms.filter(m=>m.srs&&m.srs.due<=today()), fresh=ms.filter(m=>!m.srs);
   $('#dueBox').innerHTML=ms.length?`<div class="due">今天要複習 <b>${due.length}</b> 個，還沒練過 <b>${fresh.length}</b> 個${due.length?'<br>'+due.slice(0,6).map(m=>esc(m.name)).join('、'):''}</div>`:'';
+  $('.imp').hidden=tracks.size>0&&!impOpen;$('#bImp').hidden=!$('.imp').hidden;
   $('#empty').hidden=tracks.size>0;$('#player').hidden=!curId;
 }
 
@@ -422,7 +469,19 @@ function tick(){
 requestAnimationFrame(tick);
 audio.onended=()=>{stopAt=null;segI=0;try{audio.currentTime=startPos()}catch(_){}renderSeg();updPlay();draw();$('#sTime').textContent=fmt(startPos())+' / '+fmt(audio.duration)};
 audio.onloadedmetadata=()=>{if(audio.currentTime<startPos())audio.currentTime=startPos();draw();$('#sTime').textContent='0:00 / '+fmt(audio.duration)};
-function updPlay(){const busy=!audio.paused||waitT;$('#bPlay').textContent=busy?'❚❚ 暫停':'▶ 播放'}
+function updPlay(){const busy=!audio.paused||waitT;$('#bPlay').textContent=busy?'❚❚ 暫停':'▶ 播放';$('#dPlay').textContent=busy?'❚❚':'▶';$('#dPlay').setAttribute('aria-label',busy?'暫停':'播放')}
+function syncDock(){const rec=recorder&&recorder.state==='recording';$('#dRec').classList.toggle('on',!!rec);$('#dRec').textContent=rec?'■':'●';$('#dCmp').disabled=$('#bCmp').disabled}
+const lib=document.querySelector('.lib');
+function openSheet(){lib.open=true;lib.classList.add('show');$('#scrim').hidden=false;const c=lib.querySelector('.trk.cur');if(c)c.scrollIntoView({block:'center'})}
+function closeSheet(){lib.classList.remove('show');$('#scrim').hidden=true}
+let toastT=null;
+new MutationObserver(()=>{const t=$('#recMsg').textContent;const el=$('#toast');clearTimeout(toastT);
+  if(!t){el.hidden=true;return}el.textContent=t;el.hidden=false;toastT=setTimeout(()=>el.hidden=true,/失敗|拒絕|不能|找不到|https/.test(t)?9000:2500)}).observe($('#recMsg'),{childList:true,characterData:true,subtree:true});
+$('#toast').onclick=()=>$('#toast').hidden=true;
+$('#bImp').onclick=()=>{impOpen=true;renderLib()};
+$('#bPick').onclick=openSheet;$('#scrim').onclick=closeSheet;$('#bClose').onclick=closeSheet;
+$('#dPrev').onclick=()=>jump(-1);$('#dNext').onclick=()=>jump(1);$('#dPlay').onclick=()=>toggle();
+$('#dRec').onclick=()=>$('#bRec').click();$('#dCmp').onclick=()=>$('#bCmp').click();
 function toggle(){
   if(!audio.paused||waitT){stopAll();return}
   if(mode==='cont'){if(audio.ended||audio.currentTime<startPos())audio.currentTime=startPos();audio.play().catch(()=>{});updPlay()}
@@ -448,7 +507,7 @@ function renderSeg(){
   const S=segs(),m=metas.get(curId);if(!m)return;
   $('#sIdx').textContent=S.length?`第 ${segI+1} / ${S.length} 句`:'—';
   const n=m.notes[segI]||{};$('#nHeard').value=n.h||'';$('#nAns').value=n.a||'';
-  const r=recs.get(curId+'|'+segI);$('#bMine').disabled=$('#bCmp').disabled=!r;
+  const r=recs.get(curId+'|'+segI);$('#bMine').disabled=$('#bCmp').disabled=!r;if(typeof syncDock==='function')syncDock();
   if(typeof renderTx==='function')renderTx();
 }
 function setNote(k,v){const m=metas.get(curId);if(!m)return;while(m.notes.length<=segI)m.notes.push(null);m.notes[segI]=Object.assign({},m.notes[segI],{[k]:v});saveMeta()}
@@ -485,15 +544,23 @@ function restoreAudio(){
 }
 $('#bRec').onclick=async()=>{
   if(recorder&&recorder.state==='recording'){recorder.stop();return}
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder){
+    $('#recMsg').textContent=window.isSecureContext===false?'這個網址不是 https，無法錄音。':'這個瀏覽器不能錄音：請用 Safari 打開你的 GitHub 網址（不要在 LINE、FB 等 App 內建的瀏覽器開，也不要用 claude.ai 網頁版）。';return}
   try{
     setSession('play-and-record');
-    const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    let st;
+    try{st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}})}
+    catch(e1){if(e1&&e1.name==='NotAllowedError')throw e1;st=await navigator.mediaDevices.getUserMedia({audio:true})}
     const chunks=[];recorder=new MediaRecorder(st);const key=curId+'|'+segI;
     recorder.ondataavailable=e=>chunks.push(e.data);
     recorder.onstop=()=>{st.getTracks().forEach(t=>t.stop());restoreAudio();const old=recs.get(key);if(old)URL.revokeObjectURL(old);
-      recs.set(key,URL.createObjectURL(new Blob(chunks,{type:recorder.mimeType})));$('#bRec').textContent='● 重錄';$('#bRec').classList.remove('on');$('#recMsg').textContent='';renderSeg()};
-    stopAll();recorder.start();$('#bRec').textContent='■ 停止錄音';$('#bRec').classList.add('on');$('#recMsg').textContent='錄音中…說完按停止';
-  }catch(e){$('#recMsg').textContent='無法使用麥克風。claude.ai 網頁版本身不支援錄音，請改用你的 GitHub 網址版或離線版；若已在那裡，請到 Safari 的「網站設定」允許麥克風後重試。'}
+      recs.set(key,URL.createObjectURL(new Blob(chunks,{type:recorder.mimeType})));$('#bRec').textContent='● 重錄';$('#bRec').classList.remove('on');$('#recMsg').textContent='錄好了，按「原音→我的」比對';renderSeg();syncDock()};
+    stopAll();recorder.start();$('#bRec').textContent='■ 停止錄音';$('#bRec').classList.add('on');$('#recMsg').textContent='錄音中…說完按停止';syncDock();
+  }catch(e){setSession('playback');const n=e&&e.name||'Error';
+    $('#recMsg').textContent=n==='NotAllowedError'?'麥克風被拒絕（NotAllowedError）：點 Safari 網址列左邊的「大小」圖示 →「網站設定」→ 麥克風改成「允許」，再重新整理。也請確認 設定 → Safari → 麥克風 不是「拒絕」。'
+      :n==='NotFoundError'?'找不到麥克風（NotFoundError）：請拔掉耳機或藍牙裝置再試。'
+      :`錄音失敗（${n}）。請把這段文字告訴 Claude：${String(e&&e.message||'').slice(0,80)}`;
+    syncDock()}
 };
 $('#bFix').onclick=()=>{stopAll();setSession('playback');location.reload()};
 $('#bMine').onclick=()=>{const r=recs.get(curId+'|'+segI);if(!r)return;stopAll();mine.src=r;mine.play().catch(()=>{})};
